@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tip Calculator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+      margin: 0;
+    }
+
+    .box {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h1 {
+      font-size: 1.3rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .field {
+      margin-bottom: 1.2rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    input.bad {
+      border-color: red;
+      background: #fff5f5;
+    }
+
+    .err {
+      display: block;
+      color: red;
+      font-size: 0.8rem;
+      min-height: 1.1rem;
+      margin-top: 0.25rem;
+    }
+
+    .presets {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .preset {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      background: #f9fafb;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .preset.on {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+
+    .results {
+      background: #0f172a;
+      color: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .row span:first-child {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    .row span:last-child {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .big {
+      font-size: 2rem !important;
+      color: #60a5fa;
+    }
+
+    .reset {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.65rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #6b7280;
+    }
+
+    .reset:hover {
+      background: #fee2e2;
+      color: red;
+      border-color: red;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="box">
+    <h1>Tip Calculator</h1>
+
+    <div class="field">
+      <label for="bill">Bill Amount ($)</label>
+      <input id="bill" type="number" placeholder="0.00" min="0" step="0.01" />
+      <span class="err" id="bill-err"></span>
+    </div>
+
+    <div class="field">
+      <label>Tip %</label>
+      <div class="presets">
+        <button class="preset" data-val="10">10%</button>
+        <button class="preset" data-val="15">15%</button>
+        <button class="preset" data-val="20">20%</button>
+      </div>
+      <input id="tip" type="number" placeholder="Custom %" min="0" max="100" />
+      <span class="err" id="tip-err"></span>
+    </div>
+
+    <div class="field">
+      <label for="people">Number of People</label>
+      <input id="people" type="number" placeholder="1" min="1" />
+      <span class="err" id="people-err"></span>
+    </div>
+
+    <div class="results">
+      <div class="row"><span>Tip Total</span> <span id="out-tip">$0.00</span></div>
+      <div class="row"><span>Grand Total</span> <span id="out-grand">$0.00</span></div>
+      <div class="row"><span>Per Person</span> <span id="out-per" class="big">$0.00</span></div>
+    </div>
+
+    <button class="reset" id="reset">↺ Reset</button>
+  </div>
+
+  <script>
+
+    //---------------------- js code start  --------------------------------
+
+    const bill = document.getElementById('bill');
+    const tip = document.getElementById('tip');
+    const people = document.getElementById('people');
+
+    const billErr = document.getElementById('bill-err');
+    const tipErr = document.getElementById('tip-err');
+    const peopleErr = document.getElementById('people-err');
+
+    const outTip = document.getElementById('out-tip');
+    const outGrand = document.getElementById('out-grand');
+    const outPer = document.getElementById('out-per');
+
+    const presets = document.querySelectorAll('.preset');
+    const reset = document.getElementById('reset');
+
+    // Helper: show error
+    function bad(input, span, msg) {
+      input.classList.add('bad');
+      span.textContent = msg;
+    }
+
+    // Helper: clear error
+    function good(input, span) {
+      input.classList.remove('bad');
+      span.textContent = '';
+    }
+
+    // Main calculation
+    function calc() {
+      const b = parseFloat(bill.value);
+      const t = parseFloat(tip.value);
+      const p = parseInt(people.value);
+      let ok = true;
+
+      // Validate bill
+      if (bill.value === '') { good(bill, billErr); }
+      else if (isNaN(b) || b < 0) { bad(bill, billErr, 'Enter a positive number.'); ok = false; }
+      else { good(bill, billErr); }
+
+      // Validate tip
+      if (tip.value === '') { good(tip, tipErr); }
+      else if (isNaN(t) || t < 0) { bad(tip, tipErr, 'Tip cannot be negative.'); ok = false; }
+      else if (t > 100) { bad(tip, tipErr, 'Tip cannot be more than 100%.'); ok = false; }
+      else { good(tip, tipErr); }
+
+      // Validate people
+      if (people.value === '') { good(people, peopleErr); }
+      else if (isNaN(p) || p < 1) { bad(people, peopleErr, 'At least 1 person.'); ok = false; }
+      else { good(people, peopleErr); }
+
+      // If any error, or any field is empty → show $0.00
+      if (!ok || isNaN(b) || isNaN(t) || isNaN(p)) {
+        outTip.textContent = outGrand.textContent = outPer.textContent = '$0.00';
+        return;
+      }
+
+      // Do the math
+      const tipAmt = b * (t / 100);
+      const grand = b + tipAmt;
+      const perPerson = Math.ceil((grand / p) * 100) / 100; // round UP to nearest cent
+
+      outTip.textContent = '$' + tipAmt.toFixed(2);
+      outGrand.textContent = '$' + grand.toFixed(2);
+      outPer.textContent = '$' + perPerson.toFixed(2);
+    }
+
+    // Listen for typing
+    bill.addEventListener('input', calc);
+    people.addEventListener('input', calc);
+    tip.addEventListener('input', () => {
+      presets.forEach(b => b.classList.remove('on'));
+      calc();
+    });
+
+    // Preset buttons
+    presets.forEach(btn => {
+      btn.addEventListener('click', () => {
+        presets.forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+        tip.value = btn.dataset.val;
+        calc();
+      });
+    });
+
+    // Reset
+    reset.addEventListener('click', () => {
+      bill.value = tip.value = people.value = '';
+      presets.forEach(b => b.classList.remove('on'));
+      good(bill, billErr);
+      good(tip, tipErr);
+      good(people, peopleErr);
+      calc();
+    });
+  </script>
+
+</body>
+
+</html>
